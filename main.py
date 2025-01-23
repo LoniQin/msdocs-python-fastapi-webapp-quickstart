@@ -5,8 +5,8 @@ from fastapi.templating import Jinja2Templates
 import uvicorn
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-class Message(BaseModel):
-    content: str
+from database import manager
+from models import Message, UserCreate, UserLogin
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -38,9 +38,16 @@ def chat(message: Message):
         raise HTTPException(status_code=400, detail="Message content cannot be empty")
     
     # Simple chatbot logic
-    response = f"You said: {message.content}"
+    response = f"You said: {message.content} \(mana)"
     return {"response": response}
 
+@app.post("/signup/")
+def signup(user: UserCreate):
+    return manager.signup(user.email, user.username, user.password)
+
+@app.post("/login/")
+def login(user: UserLogin):
+    return manager.login(user.email, user.password)
 
 if __name__ == '__main__':
     uvicorn.run('main:app', host='0.0.0.0', port=8000)
