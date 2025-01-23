@@ -4,11 +4,11 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 import uvicorn
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
 from database import manager
 from models import Message, UserCreate, UserLogin
-
+import psycopg2
 app = FastAPI()
+
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
@@ -38,7 +38,7 @@ def chat(message: Message):
         raise HTTPException(status_code=400, detail="Message content cannot be empty")
     
     # Simple chatbot logic
-    response = f"You said: {message.content} \(mana)"
+    response = f"You said: {message.content}"
     return {"response": response}
 
 @app.post("/signup/")
