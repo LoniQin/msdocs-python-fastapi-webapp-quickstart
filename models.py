@@ -28,3 +28,9 @@ class Messages(BaseModel):
 class CommonResponse(BaseModel):
     message: str
     data: Any
+
+class FeedBackModel(BaseModel):
+    user_id: int
+    contact: str
+    title: str
+    content: str

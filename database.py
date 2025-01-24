@@ -28,7 +28,6 @@ class User(Base):
     created_at = Column(TIMESTAMP, default=func.now())
 
 
-
 class Conversation(Base):
     __tablename__ = "conversations"
     conversation_id = Column(Integer, primary_key=True, index=True)
@@ -51,6 +50,14 @@ class Preference(Base):
     language = Column(String, default="en")
     theme = Column(String, default="light")
     
+class Feedback(Base):
+    __tablename__ = "feedbacks"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("chat_users.user_id"))
+    contact = Column(String, default="")
+    title = Column(String, default="")
+    content = Column(String, default="")
+    created_at = Column(TIMESTAMP, default=func.now())
 
 # Assuming the User model is defined as shown in your initial code
 class DatabaseManager:
@@ -198,6 +205,19 @@ class DatabaseManager:
             return response.json()  # Return the JSON response
         else:
             raise Exception(f"Request failed with status code {response.status_code}: {response.text}")
+    
+    def createFeedBack(self, feedback):
+        session = self.Session()
+        feedback = Feedback(user_id=feedback.user_id, contact=feedback.contact, title=feedback.title, content=feedback.content)
+        try:
+            session.add(feedback)
+            session.commit()
+            return CommonResponse(message="Successful submit feedback", data=feedback)
+        except IntegrityError:
+            session.rollback()
+            raise HTTPException(status_code=400, detail="")
+        finally:
+            session.close()
 
 DATABASE_URL = os.environ["POSTGRES_URL"]
 
