@@ -3,10 +3,12 @@ from fastapi.responses import HTMLResponse, FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 import uvicorn
+import requests
 from fastapi import FastAPI, HTTPException
 from database import manager
-from models import Message, UserCreate, UserLogin
+from models import Messages, UserCreate, UserLogin, CommonResponse
 import psycopg2
+
 app = FastAPI()
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -33,13 +35,16 @@ async def hello(request: Request, name: str = Form(...)):
         return RedirectResponse(request.url_for("index"), status_code=status.HTTP_302_FOUND)
 
 @app.post("/chat/")
-def chat(message: Message):
-    if not message.content:
+def chat(message: Messages):
+    print("Message:{message}")
+    if not message:
         raise HTTPException(status_code=400, detail="Message content cannot be empty")
-    
-    # Simple chatbot logic
-    response = f"You said: {message.content}"
-    return {"response": response}
+    try:
+        messages = message.messages
+        response = manager.send_chat_completion(messages)
+        return CommonResponse(message="", data=response)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"{e}")
 
 @app.post("/signup/")
 def signup(user: UserCreate):

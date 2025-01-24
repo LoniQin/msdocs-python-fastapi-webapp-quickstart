@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Any
+from typing import Any, List
 # User model for Pydantic
 class UserCreate(BaseModel):
     email: str
@@ -18,8 +18,11 @@ class UserResponse(BaseModel):
     access_token: str
 
 class Message(BaseModel):
+    role: str 
     content: str
 
+class Messages(BaseModel):
+    messages: List[Message]
 
 
 class CommonResponse(BaseModel):
