@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from typing import Any, List
+from datetime import datetime
 # User model for Pydantic
 class UserCreate(BaseModel):
     email: str
@@ -34,3 +35,10 @@ class FeedBackModel(BaseModel):
     contact: str
     title: str
     content: str
+
+class FeedBackResponse(BaseModel):
+    id: int
+    contact: str
+    title: str
+    content: str
+    created_at: datetime

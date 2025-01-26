@@ -10,7 +10,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import IntegrityError
 from datetime import datetime, timedelta
-from models import UserResponse, CommonResponse
+from models import UserResponse, CommonResponse, FeedBackResponse
 import uuid
 import requests
 # Define the base class for declarative models
@@ -51,7 +51,7 @@ class Preference(Base):
     theme = Column(String, default="light")
     
 class Feedback(Base):
-    __tablename__ = "feedbacks"
+    __tablename__ = "user_feedbacks"
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("chat_users.user_id"))
     contact = Column(String, default="")
@@ -208,11 +208,18 @@ class DatabaseManager:
     
     def createFeedBack(self, feedback):
         session = self.Session()
-        feedback = Feedback(user_id=feedback.user_id, contact=feedback.contact, title=feedback.title, content=feedback.content)
+        feedback = Feedback(
+            user_id=feedback.user_id, 
+            contact=feedback.contact, 
+            title=feedback.title, 
+            content=feedback.content,
+            created_at=datetime.now()
+        )
         try:
             session.add(feedback)
             session.commit()
-            return CommonResponse(message="Successful submit feedback", data=feedback)
+            response = FeedBackResponse(id=feedback.id, contact=feedback.contact, title=feedback.title, content=feedback.content, created_at=feedback.created_at)
+            return CommonResponse(message="Successful submit feedback", data=response)
         except IntegrityError:
             session.rollback()
             raise HTTPException(status_code=400, detail="")
