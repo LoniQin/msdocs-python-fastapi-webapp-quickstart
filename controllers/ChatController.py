@@ -10,7 +10,6 @@ class ChatController(BaseController):
         app = self.app
         @app.post("/chat/")
         def chat(message: Messages):
-            print("Message:{message}")
             if not message:
                 raise HTTPException(status_code=400, detail="Message content cannot be empty")
             try:

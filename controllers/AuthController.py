@@ -23,12 +23,10 @@ class AuthController(BaseController):
         return hashlib.sha256(password.encode()).hexdigest()
 
     def signup(self, email, username, password):
-        print("Sign up")
         session = self.manager.Session()
         # Check if the email already exists
         existing_user = session.query(User).filter(User.email == email).first()
         if existing_user:
-            print("existing_user")
             raise HTTPException(status_code=400, detail="Email already exists.")
         access_token = str(uuid.uuid4())
         new_user = User(
@@ -47,7 +45,6 @@ class AuthController(BaseController):
             return CommonResponse(message="User signed up successfully!", data=data)
         except IntegrityError:
             session.rollback()
-            print("Error: Email or username already exists.")
             raise HTTPException(status_code=400, detail="Email or username already exists.")
         finally:
             session.close()

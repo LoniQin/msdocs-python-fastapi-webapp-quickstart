@@ -27,12 +27,11 @@ async def favicon():
     file_name = 'favicon.ico'
     file_path = './static/' + file_name
     return FileResponse(path=file_path, headers={'mimetype': 'image/vnd.microsoft.icon'})
-
+for Controller in [AuthController, ChatController, FeedbackController]:
+    cls = Controller(app, manager)
+    cls.setup()
 def main():
     load_dotenv()
-    for Controller in [AuthController, ChatController, FeedbackController]:
-        cls = Controller(app, manager)
-        cls.setup()
     uvicorn.run('main:app', host='0.0.0.0', port=8000)
 if __name__ == '__main__':
     main()

@@ -26,7 +26,7 @@ class FeedbackController(BaseController):
             session.add(feedback)
             session.commit()
             response = FeedBackResponse(id=feedback.id, contact=feedback.contact, title=feedback.title, content=feedback.content, created_at=feedback.created_at)
-            return CommonResponse(message="Successful Submit feedback", data=response)
+            return CommonResponse(message="Successfully Submit feedback", data=response)
         except IntegrityError:
             session.rollback()
             raise HTTPException(status_code=400, detail="")

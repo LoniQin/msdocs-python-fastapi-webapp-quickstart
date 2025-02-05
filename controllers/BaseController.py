@@ -7,6 +7,3 @@ class BaseController:
 
     def setup(self):
         pass
-        
-    def create_session(self):
-        return self.manager.Session()
