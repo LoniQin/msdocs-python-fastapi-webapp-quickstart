@@ -3,9 +3,14 @@ from fastapi.responses import HTMLResponse, FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 import uvicorn
-from fastapi import FastAPI, HTTPException
-from database import manager
-from models import Messages, UserCreate, UserLogin, CommonResponse, FeedBackModel
+from fastapi import FastAPI
+from database import create_manager
+from models import FeedBackModel
+from controllers.AuthController import AuthController
+from controllers.ChatController import ChatController
+from dotenv import load_dotenv
+
+manager = create_manager()
 
 app = FastAPI()
 
@@ -23,30 +28,16 @@ async def favicon():
     file_path = './static/' + file_name
     return FileResponse(path=file_path, headers={'mimetype': 'image/vnd.microsoft.icon'})
 
-@app.post("/chat/")
-def chat(message: Messages):
-    print("Message:{message}")
-    if not message:
-        raise HTTPException(status_code=400, detail="Message content cannot be empty")
-    try:
-        messages = message.messages
-        response = manager.send_chat_completion(messages)
-        return CommonResponse(message="", data=response)
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"{e}")
-
-@app.post("/signup/")
-def signup(user: UserCreate):
-    return manager.signup(user.email, user.username, user.password)
-
-@app.post("/login/")
-def login(user: UserLogin):
-    return manager.login(user.email, user.password)
-
 @app.post("/feedback/")
-def login(feedback: FeedBackModel):
+def feeedback(feedback: FeedBackModel):
     return manager.createFeedBack(feedback=feedback)
 
+for Controller in [AuthController, ChatController]:
+    cls = Controller(app, manager)
+    cls.setup()
+
 if __name__ == '__main__':
+
+    load_dotenv()
     uvicorn.run('main:app', host='0.0.0.0', port=8000)
 
