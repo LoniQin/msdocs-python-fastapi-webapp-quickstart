@@ -25,13 +25,11 @@ class ChatController(BaseController):
             try:
                 messages = message.messages
                 if message.model == "gpt-4o-mini":
-                    response = self.chat_with_openai(messages)
+                    return self.chat_with_openai(messages)
                 elif message.model == "DeepSeek-R1":
                     return self.chat_with_deepseek_r1(messages)
                 else:
                     raise HTTPException(status_code=400, detail=f"Model does not exists.")
-                
-                return CommonResponse(message="", data=response)
             except Exception as e:
                 raise HTTPException(status_code=400, detail=f"{e}")
             
@@ -106,7 +104,8 @@ class ChatController(BaseController):
         payload = {
             "messages": items,
             "max_tokens": max_tokens,
-            "temperature": temperature
+            "temperature": temperature,
+            "stream": True
         }
         response = requests.post(url, headers=headers, json=payload, stream=True)
         def content_stream():
