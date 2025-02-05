@@ -5,6 +5,8 @@ class BaseController:
         self.app = app
         self.manager = manager
 
-    def setup():
+    def setup(self):
         pass
         
+    def create_session(self):
+        return self.manager.Session()

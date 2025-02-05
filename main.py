@@ -5,9 +5,9 @@ from fastapi.templating import Jinja2Templates
 import uvicorn
 from fastapi import FastAPI
 from database import create_manager
-from models import FeedBackModel
 from controllers.AuthController import AuthController
 from controllers.ChatController import ChatController
+from controllers.FeedbackController import FeedbackController
 from dotenv import load_dotenv
 
 manager = create_manager()
@@ -28,13 +28,9 @@ async def favicon():
     file_path = './static/' + file_name
     return FileResponse(path=file_path, headers={'mimetype': 'image/vnd.microsoft.icon'})
 
-@app.post("/feedback/")
-def feeedback(feedback: FeedBackModel):
-    return manager.createFeedBack(feedback=feedback)
-
 def main():
     load_dotenv()
-    for Controller in [AuthController, ChatController]:
+    for Controller in [AuthController, ChatController, FeedbackController]:
         cls = Controller(app, manager)
         cls.setup()
     uvicorn.run('main:app', host='0.0.0.0', port=8000)
