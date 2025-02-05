@@ -41,7 +41,7 @@ class ChatController(BaseController):
     
     def chat_with_deepseek_r1(self, messages):
         """
-        Sends a chat completion request to Azure OpenAI DeepSeek Service.
+        Sends a chat completion request to Azure DeepSeek Service.
 
         Args:
             messages (list({role, content})): messages with role and content each item.
@@ -76,7 +76,7 @@ class ChatController(BaseController):
         
     def chat_with_openai(self, messages, max_tokens=512, temperature=0.7):
         """
-        Sends a chat completion request to Azure OpenAI.
+        Sends a chat completion request to Azure OpenAI services.
 
         Args:
             messages (list({role, content})): messages with role and content each item.
