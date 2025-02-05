@@ -23,8 +23,15 @@ class Message(BaseModel):
     content: str
 
 class Messages(BaseModel):
+    model: str
     messages: List[Message]
 
+class ChatModel(BaseModel):
+    id: str
+    model: str
+    displayName: str
+    provider: str
+    description: str
 
 class CommonResponse(BaseModel):
     message: str
