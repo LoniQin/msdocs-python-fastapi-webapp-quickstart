@@ -32,12 +32,13 @@ async def favicon():
 def feeedback(feedback: FeedBackModel):
     return manager.createFeedBack(feedback=feedback)
 
-for Controller in [AuthController, ChatController]:
-    cls = Controller(app, manager)
-    cls.setup()
-
-if __name__ == '__main__':
-
+def main():
     load_dotenv()
+    for Controller in [AuthController, ChatController]:
+        cls = Controller(app, manager)
+        cls.setup()
     uvicorn.run('main:app', host='0.0.0.0', port=8000)
+if __name__ == '__main__':
+    main()
+    
 
