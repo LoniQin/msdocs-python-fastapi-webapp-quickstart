@@ -1,10 +1,9 @@
 import json
 from datetime import datetime
 
-def get_current_time(location):
+def get_current_time():
     """Get the current time for a given location"""
-    print(f"get_current_time called with location: {location}")  
-    return json.dumps({"location": location, "current_time": datetime.now().strftime("%I:%M %p") })
+    return json.dumps({"current_time": datetime.now().strftime("%I:%M %p") })
 
 def perform_calculation(operation, numbers):
     """Perform a mathematical calculation on a list of numbers"""
@@ -30,19 +29,9 @@ def get_tools():
     tools = [
         {
             "type": "function",
-                "function": {
-                    "name": "get_current_time",
-                    "description": "Get the current time in a given location",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "location": {
-                            "type": "string",
-                            "description": "The city name, e.g. San Francisco",
-                        },
-                    },
-                    "required": ["location"],
-                },
+            "function": {
+                "name": "get_current_time",
+                "description": "Get the current time in a given location"
             }
         },
         {
@@ -77,9 +66,7 @@ def handle_tool_call(tool_call):
     function_response = None
     if tool_call.function.name == "get_current_time":
         function_args = json.loads(tool_call.function.arguments)
-        function_response = get_current_time(
-            location=function_args.get("location")
-        )
+        function_response = get_current_time()
     if tool_call.function.name == "perform_calculation":
         function_args = json.loads(tool_call.function.arguments)
         function_response = perform_calculation(
