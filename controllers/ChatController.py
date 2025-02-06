@@ -7,12 +7,12 @@ import uuid
 import httpx
 import asyncio
 import httpx
-
+import requests
 class ChatController(BaseController):
 
     def setup(self):
         app = self.app
-        timeout = httpx.Timeout(30.0)  # 30 seconds
+        timeout = httpx.Timeout(120.0)  # 120 seconds
         self.client = httpx.AsyncClient(timeout=timeout)
         @app.post("/chat-models/")
         def chat_models():
@@ -102,14 +102,10 @@ class ChatController(BaseController):
             )
         else:
             try:
-                print(0, payload)
-                response = await self.client.post(url, headers=headers, json=payload)
-                print(1, response)
-                response.raise_for_status()
-                print(2, response)
-                json = response.json()
-                print(3, json)
-                return CommonResponse(message="", data=json)
+                async with self.client.post(url, headers=headers, json=payload) as response:
+                    response.raise_for_status()
+                    json = await response.json()
+                    return CommonResponse(message="", data=json)
             except httpx.HTTPStatusError as e:
                 raise HTTPException(status_code=e.response.status_code, detail=str(e))
             except Exception as e:
