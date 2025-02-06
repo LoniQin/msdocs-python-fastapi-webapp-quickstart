@@ -1,3 +1,4 @@
+import json.scanner
 from controllers.BaseController import BaseController
 import os
 from models import Conversation, CommonResponse, ChatModel
@@ -7,7 +8,11 @@ import uuid
 import httpx
 import asyncio
 import httpx
-import requests
+import openai
+from azure.ai.inference import ChatCompletionsClient
+from azure.core.credentials import AzureKeyCredential
+from azure.ai.inference.models import SystemMessage, UserMessage, AssistantMessage, StreamingChatCompletionsUpdate
+import json
 class ChatController(BaseController):
 
     def setup(self):
@@ -24,9 +29,9 @@ class ChatController(BaseController):
                 raise HTTPException(status_code=400, detail="Message content cannot be empty")
             try:
                 if conversation.model == "gpt-4o-mini":
-                    return await self.chat_with_openai(conversation)
+                    return await self.chat_with_azure_gpt4omini(conversation)
                 elif conversation.model == "DeepSeek-R1":
-                    return await self.chat_with_deepseek_r1(conversation)
+                    return await self.chat_with_azure_deepseek_r1(conversation)
                 else:
                     raise HTTPException(status_code=400, detail=f"Model does not exists.")
             except Exception as e:
@@ -88,6 +93,80 @@ class ChatController(BaseController):
             "stream": conversation.stream
         }
         return await self.common_request(url, headers, payload, conversation.stream)
+    
+    async def chat_with_azure_gpt4omini(self, conversation):
+        api_key = os.environ["API_KEY"]
+        api_version = "2024-05-01-preview"
+        deployment = "gpt-4o-mini"
+        client = openai.AzureOpenAI(
+            azure_endpoint="https://ai-lonnieqin6583ai982841037486.openai.azure.com/",
+            api_key=api_key,
+            api_version=api_version
+        )
+        async def stream_chat_completion():
+            response = client.chat.completions.create(
+                messages=conversation.messages,
+                model=deployment,
+                stream=True
+            )
+            for chunk in response:
+                yield "data: " + chunk.to_json() + "\n"
+        if conversation.stream:
+            return StreamingResponse(
+                stream_chat_completion(),
+                media_type="text/event-stream"
+            )
+        else:
+            response = client.chat.completions.create(
+                messages=conversation.messages,
+                model=deployment,
+                stream=False
+            )
+            return CommonResponse(message="", data=response.to_json())
+        
+    async def chat_with_azure_deepseek_r1(self, conversation):
+        api_key = os.environ["DEEPSEEK_APIKEY"]
+        # set the deployment name for the model we want to use
+        deployment = "DeepSeek-R1"
+        
+        client = ChatCompletionsClient(
+            endpoint="https://DeepSeek-R1-zxxnw.eastus2.models.ai.azure.com/",
+            credential=AzureKeyCredential(api_key)
+        )
+        messages = []
+        for message in conversation.messages:
+            if message.role == "user":
+                messages.append(UserMessage(message.content))
+            if message.role == "system":
+                messages.append(SystemMessage(message.content))
+            if message.role == "assistant":
+                messages.append(AssistantMessage(message.content))
+        async def stream_chat_completion():
+            print("111")
+            response = client.complete(
+                messages=messages,
+                max_tokens=4096,
+                model=deployment,
+                stream=True
+            )
+            print("222")
+            for chunk in response:
+                print("333", chunk)
+    
+                print("Type", type(chunk.as_dict()))
+                yield "data: " + json.dumps(chunk.as_dict()) + "\n"
+        if conversation.stream:
+            return StreamingResponse(
+                stream_chat_completion(),
+                media_type="text/event-stream"
+            )
+        else:
+            response = client.complete(
+                messages=messages,
+                max_tokens=4096,
+                model=deployment
+            )
+            return CommonResponse(message="", data=response.to_json())
                             
     async def common_request(self, url, headers, payload, stream):
         async def stream_chat_completion():
