@@ -1,7 +1,7 @@
 import json.scanner
 from controllers.BaseController import BaseController
 import os
-from models import Conversation, CommonResponse, ChatModel
+from models import Conversation, Message, CommonResponse, ChatModel
 from fastapi import HTTPException
 from fastapi.responses import StreamingResponse
 import uuid
@@ -11,8 +11,10 @@ import httpx
 import openai
 from azure.ai.inference import ChatCompletionsClient
 from azure.core.credentials import AzureKeyCredential
-from azure.ai.inference.models import SystemMessage, UserMessage, AssistantMessage, StreamingChatCompletionsUpdate
-import json
+from azure.ai.inference.models import SystemMessage, UserMessage, AssistantMessage
+import json 
+from tools import get_tools, handle_tool_call
+
 class ChatController(BaseController):
 
     def setup(self):
@@ -30,6 +32,8 @@ class ChatController(BaseController):
             try:
                 if conversation.model == "gpt-4o-mini":
                     return await self.chat_with_azure_gpt4omini(conversation)
+                elif conversation.model == "gpt-4o-mini-function-calling":
+                    return await self.chat_with_gpt4omini_function_calling(conversation)
                 elif conversation.model == "DeepSeek-R1":
                     return await self.chat_with_deepseek_r1(conversation)
                 else:
@@ -44,8 +48,9 @@ class ChatController(BaseController):
 
     def chat_models(self):
         return [
-            ChatModel(id = str(uuid.uuid4()), model="gpt-4o-mini", displayName="gpt-4o-mini", provider="openai", description="gpt-4o-mini"),
-            ChatModel(id = str(uuid.uuid4()), model="DeepSeek-R1", displayName="DeepSeek-R1", provider="DeepSeek-R1", description="DeepSeek-R1 excels at reasoning tasks using a step-by-step training process, such as language, scientific reasoning, and coding tasks. It features 671B total parameters with 37B active parameters, and 128k context length. DeepSeek-R1 builds on the progress of earlier reasoning-focused models that improved performance by extending Chain-of-Thought (CoT) reasoning. DeepSeek-R1 takes things further by combining reinforcement learning (RL) with fine-tuning on carefully chosen datasets. It evolved from an earlier version, DeepSeek-R1-Zero, which relied solely on RL and showed strong reasoning skills but had issues like hard-to-read outputs and language inconsistencies. To address these limitations, DeepSeek-R1 incorporates a small amount of cold-start data and follows a refined training pipeline that blends reasoning-oriented RL with supervised fine-tuning on curated datasets, resulting in a model that achieves state-of-the-art performance on reasoning benchmarks.")
+            ChatModel(id = str(uuid.uuid4()), model="gpt-4o-mini", displayName="gpt-4o-mini", provider="OpenAI", description="GPT-4o-Mini, a cutting-edge AI language model designed to offer powerful AI capabilities in a compact and accessible format. Building on the successes of its predecessors, GPT-4o-Mini retains the advanced understanding and language generation abilities that have made the GPT series a favorite among developers and researchers."),
+            ChatModel(id = str(uuid.uuid4()), model="gpt-4o-mini-function-calling", displayName="gpt-4o-mini-function-calling", provider="OpenAI", description="GPT-4o-Mini, a cutting-edge AI language model designed to offer powerful AI capabilities in a compact and accessible format. Building on the successes of its predecessors, GPT-4o-Mini retains the advanced understanding and language generation abilities that have made the GPT series a favorite among developers and researchers."),
+            ChatModel(id = str(uuid.uuid4()), model="DeepSeek-R1", displayName="DeepSeek-R1", provider="DeepSeek", description="DeepSeek-R1 excels at reasoning tasks using a step-by-step training process, such as language, scientific reasoning, and coding tasks. It features 671B total parameters with 37B active parameters, and 128k context length. DeepSeek-R1 builds on the progress of earlier reasoning-focused models that improved performance by extending Chain-of-Thought (CoT) reasoning. DeepSeek-R1 takes things further by combining reinforcement learning (RL) with fine-tuning on carefully chosen datasets. It evolved from an earlier version, DeepSeek-R1-Zero, which relied solely on RL and showed strong reasoning skills but had issues like hard-to-read outputs and language inconsistencies. To address these limitations, DeepSeek-R1 incorporates a small amount of cold-start data and follows a refined training pipeline that blends reasoning-oriented RL with supervised fine-tuning on curated datasets, resulting in a model that achieves state-of-the-art performance on reasoning benchmarks.")
         ]
         
     async def chat_with_deepseek_r1(self, conversation):
@@ -94,15 +99,19 @@ class ChatController(BaseController):
         }
         return await self.common_request(url, headers, payload, conversation.stream)
     
-    async def chat_with_azure_gpt4omini(self, conversation):
+    def get_gpt4omini_client(self):
         api_key = os.environ["API_KEY"]
         api_version = "2024-05-01-preview"
-        deployment = "gpt-4o-mini"
         client = openai.AzureOpenAI(
             azure_endpoint="https://ai-lonnieqin6583ai982841037486.openai.azure.com/",
             api_key=api_key,
             api_version=api_version
         )
+        return client
+    
+    async def chat_with_azure_gpt4omini(self, conversation):
+        deployment = "gpt-4o-mini"
+        client = self.get_gpt4omini_client()
         async def stream_chat_completion():
             response = client.chat.completions.create(
                 messages=conversation.messages,
@@ -123,6 +132,40 @@ class ChatController(BaseController):
                 stream=False
             )
             return CommonResponse(message="", data=response.to_json())
+    
+    async def chat_with_gpt4omini_function_calling(self, conversation):
+        deployment = "gpt-4o-mini"
+        client = self.get_gpt4omini_client()
+        tools = get_tools()
+        messages = []
+        for message in conversation.messages:
+            messages.append({"role": message.role, "content": message.content})
+        response = client.chat.completions.create(
+            messages=messages,
+            model=deployment,
+            tools=tools,
+            tool_choice="auto"
+        )
+        response_message = response.choices[0].message 
+        messages.append(response_message)
+            # Handle function calls
+        if response_message.tool_calls:
+            for tool_call in response_message.tool_calls:
+                response = handle_tool_call(tool_call)
+                if response != None:
+                    messages.append(response)
+                    print(f"Returne a response:{response}")
+            final_response = client.chat.completions.create(
+                model=deployment,
+                messages=messages,
+            )
+            msg = final_response.choices[0].message
+            return CommonResponse(message="", data=[Message(role=msg.role, content=msg.content)])
+        else:
+            msg = response.choices[0].message
+            return CommonResponse(message="", data=[Message(role=msg.role, content=msg.content)])
+       
+        
         
     async def chat_with_azure_deepseek_r1(self, conversation):
         api_key = os.environ["DEEPSEEK_APIKEY"]
