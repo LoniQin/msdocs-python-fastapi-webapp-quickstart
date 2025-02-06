@@ -31,7 +31,7 @@ class ChatController(BaseController):
                 if conversation.model == "gpt-4o-mini":
                     return await self.chat_with_azure_gpt4omini(conversation)
                 elif conversation.model == "DeepSeek-R1":
-                    return await self.chat_with_azure_deepseek_r1(conversation)
+                    return await self.chat_with_deepseek_r1(conversation)
                 else:
                     raise HTTPException(status_code=400, detail=f"Model does not exists.")
             except Exception as e:
@@ -142,18 +142,13 @@ class ChatController(BaseController):
             if message.role == "assistant":
                 messages.append(AssistantMessage(message.content))
         async def stream_chat_completion():
-            print("111")
             response = client.complete(
                 messages=messages,
                 max_tokens=4096,
                 model=deployment,
                 stream=True
             )
-            print("222")
             for chunk in response:
-                print("333", chunk)
-    
-                print("Type", type(chunk.as_dict()))
                 yield "data: " + json.dumps(chunk.as_dict()) + "\n"
         if conversation.stream:
             return StreamingResponse(
