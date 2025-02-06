@@ -22,9 +22,10 @@ class Message(BaseModel):
     role: str 
     content: str
 
-class Messages(BaseModel):
+class Conversation(BaseModel):
     model: str
     messages: List[Message]
+    stream: bool
 
 class ChatModel(BaseModel):
     id: str
