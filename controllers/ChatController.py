@@ -14,6 +14,7 @@ from azure.core.credentials import AzureKeyCredential
 from azure.ai.inference.models import SystemMessage, UserMessage, AssistantMessage
 import json 
 from tools import get_tools, handle_tool_call
+from openai import OpenAI
 
 class ChatController(BaseController):
 
@@ -32,6 +33,8 @@ class ChatController(BaseController):
             try:
                 if conversation.model == "gpt-4o-mini":
                     return await self.chat_with_azure_gpt4omini(conversation)
+                elif conversation.model == "nvdia-deepseek-r1":
+                    return await self.chat_with_nvdia_deeepseek(conversation)
                 elif conversation.model == "gpt-4o-mini-function-calling":
                     return await self.chat_with_gpt4omini_function_calling(conversation)
                 elif conversation.model == "DeepSeek-R1":
@@ -49,6 +52,7 @@ class ChatController(BaseController):
     def chat_models(self):
         return [
             ChatModel(id = str(uuid.uuid4()), model="gpt-4o-mini", displayName="gpt-4o-mini", provider="OpenAI", description="GPT-4o-Mini, a cutting-edge AI language model designed to offer powerful AI capabilities in a compact and accessible format. Building on the successes of its predecessors, GPT-4o-Mini retains the advanced understanding and language generation abilities that have made the GPT series a favorite among developers and researchers."),
+            ChatModel(id = str(uuid.uuid4()), model="nvdia-deepseek-r1", displayName="DeepSeek-R1", provider="NVDIA", description="DeepSeek R1 in NVDIA"),
             ChatModel(id = str(uuid.uuid4()), model="gpt-4o-mini-function-calling", displayName="gpt-4o-mini-function-calling", provider="OpenAI", description="GPT-4o-Mini, a cutting-edge AI language model designed to offer powerful AI capabilities in a compact and accessible format. Building on the successes of its predecessors, GPT-4o-Mini retains the advanced understanding and language generation abilities that have made the GPT series a favorite among developers and researchers."),
             ChatModel(id = str(uuid.uuid4()), model="DeepSeek-R1", displayName="DeepSeek-R1", provider="DeepSeek", description="DeepSeek-R1 excels at reasoning tasks using a step-by-step training process, such as language, scientific reasoning, and coding tasks. It features 671B total parameters with 37B active parameters, and 128k context length. DeepSeek-R1 builds on the progress of earlier reasoning-focused models that improved performance by extending Chain-of-Thought (CoT) reasoning. DeepSeek-R1 takes things further by combining reinforcement learning (RL) with fine-tuning on carefully chosen datasets. It evolved from an earlier version, DeepSeek-R1-Zero, which relied solely on RL and showed strong reasoning skills but had issues like hard-to-read outputs and language inconsistencies. To address these limitations, DeepSeek-R1 incorporates a small amount of cold-start data and follows a refined training pipeline that blends reasoning-oriented RL with supervised fine-tuning on curated datasets, resulting in a model that achieves state-of-the-art performance on reasoning benchmarks.")
         ]
@@ -132,6 +136,31 @@ class ChatController(BaseController):
                 stream=False
             )
             return CommonResponse(message="", data=response.to_json())
+        
+    async def chat_with_nvdia_deeepseek(self, conversation):
+        client = OpenAI(
+            base_url = "https://integrate.api.nvidia.com/v1",
+            api_key = os.environ["NVDIA_DEEPSEEK_API_KEY"]
+        )
+        messages = []
+        for message in conversation.messages:
+            messages.append({"role": message.role, "content": message.content})
+        
+        async def stream_chat_completion():
+            response = client.chat.completions.create(
+                model="deepseek-ai/deepseek-r1",
+                messages=messages,
+                temperature=0.6,
+                top_p=0.7,
+                max_tokens=4096,
+                stream=True
+            )
+            for chunk in response:
+                yield "data: " + json.dumps(chunk.to_dict()) + "\n"
+        return StreamingResponse(
+            stream_chat_completion(),
+            media_type="text/event-stream"
+        )
     
     async def chat_with_gpt4omini_function_calling(self, conversation):
         deployment = "gpt-4o-mini"
