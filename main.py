@@ -9,7 +9,6 @@ from controllers.ChatController import ChatController
 from controllers.FeedbackController import FeedbackController
 from dotenv import load_dotenv
 load_dotenv()
-manager = create_manager()
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
@@ -33,13 +32,11 @@ async def hello(request: Request, name: str = Form(...)):
     else:
         print('Request for hello page received with no name or blank name -- redirecting')
         return RedirectResponse(request.url_for("index"), status_code=status.HTTP_302_FOUND)
-    
+manager = create_manager()
 for Controller in [AuthController, ChatController, FeedbackController]:
     cls = Controller(app, manager)
-    cls.setup()
+    cls.setup()   
 def main():
     uvicorn.run('main:app', host='0.0.0.0', port=8000)
 if __name__ == '__main__':
     main()
-    
-
