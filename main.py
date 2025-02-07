@@ -3,7 +3,6 @@ from fastapi.responses import HTMLResponse, FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 import uvicorn
-from fastapi import FastAPI
 from database import create_manager
 from controllers.AuthController import AuthController
 from controllers.ChatController import ChatController
