@@ -9,9 +9,6 @@ import httpx
 import asyncio
 import httpx
 import openai
-from azure.ai.inference import ChatCompletionsClient
-from azure.core.credentials import AzureKeyCredential
-from azure.ai.inference.models import SystemMessage, UserMessage, AssistantMessage
 import json 
 from tools import get_tools, handle_tool_call
 from openai import OpenAI
@@ -302,60 +299,3 @@ class ChatController(BaseController):
         async def shutdown_event():
             print("Shutting down")
             await self.client.aclose()
-
-    async def chat_with_deepseek_r1(self, conversation):
-        # Define the endpoint URL
-        endpoint = "https://DeepSeek-R1-zxxnw.eastus2.models.ai.azure.com"
-        api_key = os.environ["DEEPSEEK_APIKEY"]
-        # Define the headers
-        headers = {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json"
-        }
-        items = []
-        for item in conversation.messages:
-            items.append({"role": item.role, "content": item.content})
-        # Define the payload
-        payload = {
-            "messages": items,
-            "max_tokens": 2048,
-            "model": "DeepSeek-R1",
-            "stream": conversation.stream
-        }
-        # Send the POST request
-        url = f"{endpoint}/chat/completions"
-        return await self.common_request(url, headers, payload, conversation.stream)
-
-    
-    def get_gpt4omini_client(self):
-        api_key = os.environ["API_KEY"]
-        api_version = "2024-05-01-preview"
-        client = openai.AzureOpenAI(
-            azure_endpoint="https://ai-lonnieqin6583ai982841037486.openai.azure.com/",
-            api_key=api_key,
-            api_version=api_version
-        )
-        return client
-
-                            
-    async def common_request(self, url, headers, payload, stream):
-        async def stream_chat_completion():
-            async with self.client.stream("POST", url, json=payload, headers=headers) as response:
-                async for chunk in response.aiter_text():
-                    yield chunk
-                    await asyncio.sleep(0.1) 
-        if stream:
-            return StreamingResponse(
-                stream_chat_completion(),
-                media_type="text/event-stream"
-            )
-        else:
-            try:
-                async with self.client.post(url, headers=headers, json=payload) as response:
-                    response.raise_for_status()
-                    json = await response.json()
-                    return CommonResponse(message="", data=json)
-            except httpx.HTTPStatusError as e:
-                raise HTTPException(status_code=e.response.status_code, detail=str(e))
-            except Exception as e:
-                raise HTTPException(status_code=500, detail=str(e))
