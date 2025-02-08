@@ -33,6 +33,7 @@ class ChatModel(BaseModel):
     displayName: str
     provider: str
     description: str
+    stream: bool
 
 class CommonResponse(BaseModel):
     message: str
