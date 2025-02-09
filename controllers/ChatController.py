@@ -1,12 +1,9 @@
-import json.scanner
 from controllers.BaseController import BaseController
-from models import Conversation, Message, CommonResponse, ChatModel
+from models import Conversation, CommonResponse
 from fastapi import HTTPException
 import httpx
-import httpx
-import json 
 from utils.llm_providers import GPT4OMiniProvider, NVDIADeepSeekR1Provider, GPT4OMiniLangchainProvider, GPT4OMiniFunctionCallingProvider, DeepSeekR1Provider
-    
+
 def chat_providers(controller):
     return [
         GPT4OMiniProvider(controller),

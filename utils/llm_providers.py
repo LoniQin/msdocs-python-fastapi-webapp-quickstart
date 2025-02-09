@@ -10,9 +10,12 @@ from openai import OpenAI
 import json
 import uuid
 from fastapi import HTTPException
+from langchain_openai import AzureChatOpenAI
+from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
+from langchain_openai import AzureOpenAI
 
 def get_gpt4omini_client():
-    api_key = os.environ["API_KEY"]
+    api_key = os.environ["AZURE_OPENAI_API_KEY"]
     api_version = "2024-05-01-preview"
     client = openai.AzureOpenAI(
         azure_endpoint="https://ai-lonnieqin6583ai982841037486.openai.azure.com/",
@@ -148,37 +151,40 @@ class GPT4OMiniLangchainProvider(LLMProvider):
         )
 
     async def execute(self, conversation):
-        deployment = "gpt-4o-mini"
-        client = get_gpt4omini_client()
-        tools = get_tools()
+        print("environment", os.environ)
+        llm = AzureOpenAI(
+            azure_deployment="gpt-4o-mini",  # or your deployment
+            api_version="=2024-05-01-preview",
+            temperature=0,
+            max_tokens=None,
+            timeout=None,
+            max_retries=2,
+        )
+        print(1, llm)
+        messages = [
+            (
+                "system",
+                "You are a helpful assistant that translates English to French. Translate the user sentence.",
+            ),
+            ("human", "I love programming."),
+        ]
+        result1 = await llm.invoke(messages)
+        print("3", result1)
         messages = []
         for message in conversation.messages:
-            messages.append({"role": message.role, "content": message.content})
-        response = client.chat.completions.create(
-            messages=messages,
-            model=deployment,
-            tools=tools,
-            tool_choice="auto"
-        )
-        response_message = response.choices[0].message 
-        messages.append(response_message)
-            # Handle function calls
-        if response_message.tool_calls:
-            for tool_call in response_message.tool_calls:
-                response = handle_tool_call(tool_call)
-                if response != None:
-                    messages.append(response)
-                    print(f"Return a response:{response}")
-            final_response = client.chat.completions.create(
-                model=deployment,
-                messages=messages,
-            )
-            msg = final_response.choices[0].message
-            return CommonResponse(message="", data=[Message(role=msg.role, content=msg.content)])
-        else:
-            msg = response.choices[0].message
-            return CommonResponse(message="", data=[Message(role=msg.role, content=msg.content)])
-               
+            if message.role == "user":
+                messages.append(HumanMessage(message.content))
+            if message.role == "assistant":
+                messages.append(AIMessage(message.content))
+            if message.role == "system":
+                messages.append(SystemMessage(message.content))
+        print("3")
+        try:
+            result = llm.invoke(messages)
+        except:
+            print("Fail")
+        return CommonResponse(message="", data=[Message(role="assistant", content=result)])
+  
 class NVDIADeepSeekR1Provider(LLMProvider):
 
     def get_model(self):
