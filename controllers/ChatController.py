@@ -1,4 +1,5 @@
 from controllers.BaseController import BaseController
+from utils.google_llm_provider import GeminiProvider
 from models import Conversation, CommonResponse
 from fastapi import HTTPException
 import httpx
@@ -10,7 +11,8 @@ def chat_providers(controller):
         NVDIADeepSeekR1Provider(controller),
         GPT4OMiniFunctionCallingProvider(controller),
         GPT4OMiniLangchainProvider(controller),
-        DeepSeekR1Provider(controller) 
+        DeepSeekR1Provider(controller),
+        GeminiProvider(controller)
     ]
 
 class ChatController(BaseController):
@@ -33,7 +35,7 @@ class ChatController(BaseController):
             if not conversation:
                 raise HTTPException(status_code=400, detail="Message content cannot be empty")
             try:
-                selected_provider = None
+                selected_provider = self.providers[0]
                 for provider in self.providers:
                     if provider.get_model().model == conversation.model:
                         selected_provider = provider
