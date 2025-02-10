@@ -35,7 +35,7 @@ class ChatController(BaseController):
             if not conversation:
                 raise HTTPException(status_code=400, detail="Message content cannot be empty")
             try:
-                selected_provider = self.providers[0]
+                selected_provider = None
                 for provider in self.providers:
                     if provider.get_model().model == conversation.model:
                         selected_provider = provider
@@ -43,7 +43,7 @@ class ChatController(BaseController):
                 if selected_provider:
                     return await selected_provider.execute(conversation)
                 else:
-                    raise HTTPException(status_code=400, detail=f"Model does not exists.")
+                    return await self.providers[0].execute(conversation)
             except Exception as e:
                 raise HTTPException(status_code=400, detail=f"{e}")
             

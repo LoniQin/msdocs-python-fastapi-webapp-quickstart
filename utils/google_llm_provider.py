@@ -9,7 +9,6 @@ class GeminiProvider(LLMProvider):
 
     def __init__(self, chat_controller):
         super().__init__(chat_controller)
-        genai.configure(api_key=os.environ["GEMINI_API_KEY"])
         # Create the model
         generation_config = {
             "temperature": 1,
