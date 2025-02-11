@@ -1,9 +1,24 @@
 from utils.llm_provider import LLMProvider
 import uuid
 from models import ChatModel, CommonResponse, Message
-from fastapi.responses import StreamingResponse
 import os
 import google.generativeai as genai
+import base64
+from PIL import Image
+
+def convert_base64_to_file(base64_string, fileName):
+    images_path = os.path.expanduser("images")
+    if not os.path.exists(images_path):
+        os.makedirs(images_path)
+    output_file_path = os.path.join(images_path, fileName)
+    # Decode the Base64 string
+    binary_data = base64.b64decode(base64_string)
+    
+    # Write the binary data to a file
+    with open(output_file_path, 'wb') as file:
+        file.write(binary_data)
+    print(f"File saved as: {output_file_path}")
+    return output_file_path
 
 class GeminiProvider(LLMProvider):
 
@@ -34,26 +49,51 @@ class GeminiProvider(LLMProvider):
         )
     
     async def execute(self, conversation):
-        history = []
-        for i in range(len(conversation.messages) - 1):
-            message = conversation.messages[i]
-            role = ""
-            if message.role == "user":
-                role = "user"
-            else:
-                role = "model" 
-            history.append({
-                "role": role,
-                "parts": [
-                    message.content
-                ]
-            })
-        chat_session = self.model.start_chat(
-            history=history
-        )
-        response = chat_session.send_message(conversation.messages[-1].content)
-        print(response)
-        return CommonResponse(
-            message="", 
-            data=[Message(role="assistant", content=response.text)]
-        ) 
+        user_message = conversation.messages[-1]
+        if len(user_message.files) > 0:
+                contents = [user_message.content]
+                for file in user_message.files:
+                    if file.mine_type == "image/jpeg":
+                        file_path = convert_base64_to_file(file.content, file.file_name)
+                        print(f"Saved file to {file_path}")
+                        img = Image.open(file_path)
+                        contents.append(img)
+                try:
+                    response = self.model.generate_content(
+                        contents=contents
+                    )
+                    return CommonResponse(
+                        message="", 
+                        data=[Message(role="assistant", content=response.text)]
+                    ) 
+                except Exception as e:
+                    print("error", e)
+                    return CommonResponse(
+                        message="Error", 
+                        data=[]
+                    ) 
+                
+        else:
+            history = []
+            for i in range(len(conversation.messages) - 1):
+                message = conversation.messages[i]
+                role = ""
+                if message.role == "user":
+                    role = "user"
+                else:
+                    role = "model" 
+                history.append({
+                    "role": role,
+                    "parts": [
+                        message.content
+                    ]
+                })
+            chat_session = self.model.start_chat(
+                history=history
+            )
+            response = chat_session.send_message(user_message.content)
+            print(response)
+            return CommonResponse(
+                message="", 
+                data=[Message(role="assistant", content=response.text)]
+            ) 
