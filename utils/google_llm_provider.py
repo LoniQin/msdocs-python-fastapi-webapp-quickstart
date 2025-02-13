@@ -56,50 +56,38 @@ class GeminiProvider(LLMProvider):
                 role = "user"
             else:
                 role = "model" 
-            messages.append(types.Part.from_text(message.content))
+            messages.append(types.Content(
+                role=role,
+                parts=[types.Part.from_text(text=message.content)]
+            ))
         user_message = conversation.messages[-1]
-       
+        contents = [types.Part.from_text(text=user_message.content)]
         if len(user_message.files) > 0:
-            contents = [user_message.content]
             for file in user_message.files:
                 if file.mine_type == "image/jpeg":
                     file_path = convert_base64_to_file(file.content, file.file_name)
-                    print(f"Saved file to {file_path}")
-                    img = Image.open(file_path)
-                    contents.append(img)
-            try:
-                response = self.client.models.generate_content(
-                    model='gemini-2.0-flash', 
-                    contents=contents
-                )
-                print("Response:", response)
-                return CommonResponse(
-                    message="", 
-                    data=[Message(role="assistant", content=response.candidates[0].content.parts[0].text)]
-                )
-            except Exception as e:
-                print("error", e)
-                return CommonResponse(
-                    message="Error", 
-                    data=[]
-                ) 
-        else:
-            try:
-                messages.append(types.Part.from_text(user_message.content))
-                response = self.client.models.generate_content(
-                    model='gemini-2.0-flash', 
-                    contents=messages
-                )
-                print("response:", response)
-                return CommonResponse(
-                    message="", 
-                    data=[Message(role="assistant", content=response.candidates[0].content.parts[0].text)]
-                ) 
-            except Exception as e:
-                print("error", e)
-                return CommonResponse(
-                    message="Error", 
-                    data=[]
-                ) 
-            
-                
+                    url = self.client.files.upload(file=file_path)
+                    print(f"Saved file to {url}")
+                    contents.append(url)
+        messages.append(
+            types.Content(
+                role="user",
+                parts=contents
+            )
+        )
+        try:
+            response = self.client.models.generate_content(
+                model='gemini-2.0-flash', 
+                contents=messages
+            )
+            print("Response:", response)
+            return CommonResponse(
+                message="", 
+                data=[Message(role="assistant", content=response.candidates[0].content.parts[0].text)]
+            )
+        except Exception as e:
+            print("error", e)
+            return CommonResponse(
+                message="Error", 
+                data=[]
+            ) 
