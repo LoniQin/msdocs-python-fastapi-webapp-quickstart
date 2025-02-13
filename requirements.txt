@@ -14,3 +14,4 @@ openai>=1.42.0
 langchain>=0.3.18
 langchain-openai>=0.3.4
 Pillow>=11.1.0
+google-genai>=1.1.0
