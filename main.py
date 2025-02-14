@@ -34,6 +34,8 @@ async def hello(request: Request, name: str = Form(...)):
         print('Request for hello page received with no name or blank name -- redirecting')
         return RedirectResponse(request.url_for("index"), status_code=status.HTTP_302_FOUND)
 manager = create_manager()
+session = manager.Session()
+session.query()
 for Controller in [AuthController, ChatController, FeedbackController, WebSocketController]:
     cls = Controller(app, manager)
     cls.setup()   

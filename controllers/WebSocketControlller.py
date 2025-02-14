@@ -4,6 +4,7 @@ from fastapi import  WebSocket, WebSocketDisconnect, Query
 import json
 import os 
 import openai
+from database import User
 
 gpt4o_api_version = "2024-05-01-preview"
 
@@ -20,10 +21,12 @@ def get_gpt4omini_client():
 class ConnectionManager:
     def __init__(self):
         self.active_connections = {}
+        self.storage = {}
 
-    async def connect(self, user_id: str, websocket: WebSocket):
+    async def connect(self, user: User, websocket: WebSocket):
         await websocket.accept()
-        self.active_connections[user_id] = websocket
+        self.active_connections[user.user_id] = websocket
+        self.storage[user.user_id] = user
 
     def disconnect(self, user_id: str):
         if user_id in self.active_connections:
@@ -44,19 +47,29 @@ class WebSocketController(BaseController):
         @app.websocket("/ws")
         def websocket(
             websocket: WebSocket,
-            user_id: str = Query(..., description="User ID to identify connection")
+            user_id: str = Query(..., description="User ID to identify connection"),
+            access_token: str = Query(..., description="Access token")
         ):
             return self.websocket_endpoint(
                 websocket=websocket, 
-                user_id=user_id
+                user_id=user_id,
+                access_token=access_token
             )
             
     async def websocket_endpoint(
         self,
         websocket: WebSocket,
-        user_id: str = Query(..., description="User ID to identify connection")
+        user_id: str = Query(..., description="User ID to identify connection"),
+        access_token: str = Query(..., description="Access token")
     ):
-        await self.connection_manager.connect(user_id, websocket)
+        user = self.authenticate(user_id=user_id, access_token=access_token)
+        print(f"User: {user}")
+        if user == None:
+            await websocket.send_text("Invalid JSON format")
+            await websocket.close()
+            return
+
+        await self.connection_manager.connect(user, websocket)
         try:
             while True:
                 data = await websocket.receive_text()

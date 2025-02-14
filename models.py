@@ -1,6 +1,11 @@
 from pydantic import BaseModel
 from typing import Any, List, Optional
 from datetime import datetime
+
+class ChatUser(BaseModel):
+    user_id: int
+    username: str
+
 # User model for Pydantic
 class UserCreate(BaseModel):
     email: str
