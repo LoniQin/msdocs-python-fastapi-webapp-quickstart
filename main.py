@@ -7,6 +7,7 @@ from database import create_manager
 from controllers.AuthController import AuthController
 from controllers.ChatController import ChatController
 from controllers.FeedbackController import FeedbackController
+from controllers.WebSocketControlller import WebSocketController
 from dotenv import load_dotenv
 load_dotenv()
 app = FastAPI()
@@ -33,7 +34,7 @@ async def hello(request: Request, name: str = Form(...)):
         print('Request for hello page received with no name or blank name -- redirecting')
         return RedirectResponse(request.url_for("index"), status_code=status.HTTP_302_FOUND)
 manager = create_manager()
-for Controller in [AuthController, ChatController, FeedbackController]:
+for Controller in [AuthController, ChatController, FeedbackController, WebSocketController]:
     cls = Controller(app, manager)
     cls.setup()   
 def main():
