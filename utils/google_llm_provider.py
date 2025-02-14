@@ -3,7 +3,6 @@ import uuid
 from models import ChatModel, CommonResponse, Message
 import os
 import base64
-from PIL import Image
 from google.genai import types, Client
 
 def get_current_weather(location: str) -> str:
