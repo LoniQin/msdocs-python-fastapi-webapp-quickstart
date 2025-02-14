@@ -72,8 +72,6 @@ class WebSocketController(BaseController):
                             model="gpt-4o-mini",
                             stream=False
                         )
-                        print(f"Response:{response}")
-                        await websocket.send_text(f"{user_id}: {message}")
                         await websocket.send_text(f"gpt-4o-mini: {response.choices[0].message.content}")
                     elif target_user and message:
                         all_message = f"{user_id}: {message}"
