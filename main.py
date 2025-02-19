@@ -9,6 +9,7 @@ from controllers.ChatController import ChatController
 from controllers.FeedbackController import FeedbackController
 from controllers.WebSocketControlller import WebSocketController
 from controllers.BlogController import BlogController
+from controllers.OllamaWebSocketControlller import OllamaWebSocketController 
 from dotenv import load_dotenv
 load_dotenv()
 app = FastAPI()
@@ -37,7 +38,7 @@ async def hello(request: Request, name: str = Form(...)):
 manager = create_manager()
 session = manager.Session()
 session.query()
-for Controller in [AuthController, ChatController, FeedbackController, WebSocketController, BlogController]:
+for Controller in [AuthController, ChatController, FeedbackController, WebSocketController, OllamaWebSocketController, BlogController]:
     cls = Controller(app, manager)
     cls.setup()   
 def main():

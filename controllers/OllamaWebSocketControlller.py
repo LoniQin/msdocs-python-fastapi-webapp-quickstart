@@ -38,13 +38,13 @@ class ConnectionManager:
             return True
         return False
 
-class WebSocketController(BaseController):
+class OllamaWebSocketController(BaseController):
 
     def setup(self):
         self.connection_manager = ConnectionManager()
         self.gpt_4o = get_gpt4omini_client()
         app = self.app
-        @app.websocket("/ws")
+        @app.websocket("/ollama")
         def websocket(
             websocket: WebSocket,
             user_id: str = Query(..., description="User ID to identify connection"),
