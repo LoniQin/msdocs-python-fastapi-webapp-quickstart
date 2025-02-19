@@ -7,8 +7,6 @@ from tools import get_tools, handle_tool_call
 from openai import OpenAI
 import json
 import uuid
-from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
-from langchain_openai import AzureOpenAI
 from utils.llm_provider import LLMProvider
 
 def get_gpt4omini_client():
@@ -114,6 +112,8 @@ class GPT4OMiniLangchainProvider(LLMProvider):
         )
 
     async def execute(self, conversation):
+        from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
+        from langchain_openai import AzureOpenAI
         print("environment", os.environ)
         llm = AzureOpenAI(
             azure_deployment="gpt-4o-mini",  # or your deployment
