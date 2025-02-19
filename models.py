@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Any, List, Optional
+from typing import Any, List
 from datetime import datetime
 
 class ChatUser(BaseModel):
@@ -53,7 +53,7 @@ class ChatModel(BaseModel):
 class CommonResponse(BaseModel):
     message: str
     data: Any
-
+## Feedback
 class FeedBackModel(BaseModel):
     user_id: int
     contact: str
@@ -63,6 +63,29 @@ class FeedBackModel(BaseModel):
 class FeedBackResponse(BaseModel):
     id: int
     contact: str
+    title: str
+    content: str
+    created_at: datetime
+## Blog
+
+class BlogModel(BaseModel):
+    user_id: int
+    title: str
+    content: str
+
+class BlogEditModel(BaseModel):
+    id: int
+    user_id: int
+    title: str
+    content: str
+
+class BlogDeleteModel(BaseModel):
+    id: int
+    user_id: int
+
+class BlogResponse(BaseModel):
+    id: int
+    user_id: int
     title: str
     content: str
     created_at: datetime

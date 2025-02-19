@@ -2,8 +2,6 @@ from sqlalchemy import create_engine, Column, Integer, String, Text, Boolean, Fo
 from sqlalchemy.ext.declarative import declarative_base
 from dotenv import load_dotenv
 import os
-from sqlalchemy import create_engine, Column, Integer, String, Text
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 Base = declarative_base()
 # Define a sample table model
@@ -46,6 +44,14 @@ class Feedback(Base):
     contact = Column(String, default="")
     title = Column(String, default="")
     content = Column(String, default="")
+    created_at = Column(TIMESTAMP, default=func.now())
+
+class Blog(Base):
+    __tablename__ = "blogs"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("chat_users.user_id"))
+    title = Column(String(255))  # Reasonable title length
+    content = Column(Text)       # Supports large text (up to 1M+ chars)
     created_at = Column(TIMESTAMP, default=func.now())
 
 # Assuming the User model is defined as shown in your initial code
