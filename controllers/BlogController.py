@@ -31,7 +31,7 @@ class BlogController(BaseController):
         async def get_blog_by_id(blog_id: int):
             return self.get_blog_handler(blog_id=blog_id)
         
-        @app.post("/blogs/query", response_model=CommonResponse)
+        @app.post("/all_blogs/", response_model=CommonResponse)
         async def get_blogs():
             return self.get_blogs()
 
@@ -128,7 +128,9 @@ class BlogController(BaseController):
     def get_blogs(self):
         session = self.manager.Session()
         try:
+            print("1")
             blogs = session.query(Blog).order_by(Blog.created_at.desc()).all()
+            print("2")
             items = []
             for blog in blogs:
                 items.append(
@@ -176,6 +178,7 @@ class BlogController(BaseController):
             raise HTTPException(500, detail=f"Server error: {str(e)}")
         finally:
             session.close()
+
     def get_blog_handler(self, blog_id: int):
         session = self.manager.Session()
         try:
