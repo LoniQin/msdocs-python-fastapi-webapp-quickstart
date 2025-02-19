@@ -12,12 +12,12 @@ class BlogController(BaseController):
         app = self.app
         
         @app.post("/blogs/", response_model=CommonResponse)
-        async def create_blog(blog: BlogModel):
-            return self.create_blog(blog=blog)
+        async def create_blog(blog: BlogModel, API_KEY: str = Header(...)):
+            return self.create_blog(blog=blog, access_token=API_KEY)
         
         @app.post("/blogs/edit/", response_model=CommonResponse)
-        async def edit_blog(blog: BlogEditModel):
-            return self.edit_blog(blog=blog)
+        async def edit_blog(blog: BlogEditModel, API_KEY: str = Header(...)):
+            return self.edit_blog(blog=blog, access_token=API_KEY)
         
         @app.post("/blogs/delete/", response_model=CommonResponse)
         async def delete_blog(blog: BlogDeleteModel, API_KEY: str = Header(...)):
@@ -31,9 +31,10 @@ class BlogController(BaseController):
         async def get_blog_by_id(blog_id: int):
             return self.get_blog_handler(blog_id=blog_id)
 
-    def create_blog(self, blog: BlogModel):
+    def create_blog(self, blog: BlogModel, access_token: str):
         session = self.manager.Session()
         try:
+            user = self.authenticate(user_id=blog.user_id, access_token=access_token, session=session)
             new_blog = Blog(
                 user_id=blog.user_id,
                 title=blog.title,
@@ -62,17 +63,19 @@ class BlogController(BaseController):
         finally:
             session.close()
 
-    def edit_blog(self, blog: BlogResponse):
+    def edit_blog(self, blog: BlogResponse, access_token: str):
         session = self.manager.Session()
         try:
+            user = self.authenticate(user_id=blog.user_id, access_token=access_token, session=session)
+            if not user:
+                self.raise_401()
             existing_blog = session.query(Blog).filter(Blog.id == blog.id).first()
             if not existing_blog:
-                raise HTTPException(404, detail="Blog not found")
+                self.raise_404()
             existing_blog.title = blog.title
             existing_blog.content = blog.content
             existing_blog.created_at = datetime.now()
             session.commit()
-            
             return CommonResponse(
                 message="Blog updated successfully",
                 data=BlogResponse(
@@ -90,6 +93,7 @@ class BlogController(BaseController):
             session.rollback()
             raise HTTPException(500, detail=str(e))
         finally:
+            print("Edit blog is executed.")
             session.close()
 
     def delete_blog(self, blog: BlogResponse, access_token: str):
@@ -97,10 +101,10 @@ class BlogController(BaseController):
         try:
             user = self.authenticate(user_id=blog.user_id, access_token=access_token, session=session)
             if not user:
-                raise HTTPException(401, detail="You don't have permission to delete this blog.")
+                self.raise_401()
             existing_blog = session.query(Blog).filter(Blog.id == blog.id).first()
             if not existing_blog:
-                raise HTTPException(404, detail="Blog not found")
+                self.raise_404()
             session.delete(existing_blog)  
             session.commit()           
             return CommonResponse(

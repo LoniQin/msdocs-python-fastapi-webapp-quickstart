@@ -1,7 +1,7 @@
 from controllers.BaseController import BaseController
 from utils.google_llm_provider import GeminiProvider
 from models import Conversation, CommonResponse
-from fastapi import HTTPException
+from fastapi import HTTPException, Header
 import httpx
 from utils.llm_providers import GPT4OMiniProvider, NVDIADeepSeekR1Provider, GPT4OMiniLangchainProvider, GPT4OMiniFunctionCallingProvider, DeepSeekR1Provider
 
@@ -31,10 +31,14 @@ class ChatController(BaseController):
             return CommonResponse(message="", data=self.chat_models)
             
         @app.post("/chat/completions/")
-        async def chat(conversation: Conversation):
+        async def chat(conversation: Conversation, API_KEY: str = Header(...)):
             if not conversation:
                 raise HTTPException(status_code=400, detail="Message content cannot be empty")
+            session = self.manager.Session()
             try:
+                user = self.authenticate_with_api_key(access_token=API_KEY, session=session)
+                if not user:
+                    self.raise_401()
                 selected_provider = None
                 for provider in self.providers:
                     if provider.get_model().model == conversation.model:
