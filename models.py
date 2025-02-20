@@ -89,3 +89,8 @@ class BlogResponse(BaseModel):
     title: str
     content: str
     created_at: datetime
+
+class WebSocketMessage(BaseModel):
+    from_id: int 
+    to_id: int 
+    message: str

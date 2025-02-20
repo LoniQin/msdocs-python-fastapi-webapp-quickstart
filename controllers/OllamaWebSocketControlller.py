@@ -5,6 +5,7 @@ import json
 import os 
 import openai
 from database import User
+from models import WebSocketMessage
 
 gpt4o_api_version = "2024-05-01-preview"
 
@@ -25,6 +26,7 @@ class ConnectionManager:
 
     async def connect(self, user: User, websocket: WebSocket):
         await websocket.accept()
+       
         self.active_connections[user.user_id] = websocket
         self.storage[user.user_id] = user
 
@@ -32,9 +34,9 @@ class ConnectionManager:
         if user_id in self.active_connections:
             del self.active_connections[user_id]
 
-    async def send_personal_message(self, message: str, user_id: str):
-        if user_id in self.active_connections:
-            await self.active_connections[user_id].send_text(message)
+    async def send_personal_message(self, message: WebSocketMessage):
+        if message.to_id in self.active_connections:
+            await self.active_connections[message.to_id].send_text(message.model_dump_json())
             return True
         return False
 
@@ -77,22 +79,12 @@ class OllamaWebSocketController(BaseController):
                     message_data = json.loads(data)
                     target_user = message_data.get("to")
                     message = message_data.get("message")
-                    if f"{target_user}".lower() == "gpt-4o-mini":
-                        response = self.gpt_4o.chat.completions.create(
-                            messages=[
-                                {"role": "user", "content": message}
-                            ],
-                            model="gpt-4o-mini",
-                            stream=False
-                        )
-                        await websocket.send_text(f"gpt-4o-mini: {response.choices[0].message.content}")
-                    elif target_user and message:
-                        all_message = f"{user_id}: {message}"
+                    if target_user and message:
+                        msg = WebSocketMessage(from_id=user_id, to_id=target_user, message=message)
                         await self.connection_manager.send_personal_message(
-                            all_message, 
-                            target_user
+                            msg
                         )
-                        await websocket.send_text(all_message)
+                        await websocket.send_text(msg.model_dump_json())
                     else:
                         await websocket.send_text("Invalid message format")
                 except json.JSONDecodeError:
