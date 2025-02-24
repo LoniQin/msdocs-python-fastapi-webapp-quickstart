@@ -30,6 +30,10 @@ class BlogController(BaseController):
         @app.post("/blogs/{blog_id}", response_model=CommonResponse)
         async def get_blog_by_id(blog_id: int):
             return self.get_blog_handler(blog_id=blog_id)
+        
+        @app.post("/all_blogs/", response_model=CommonResponse)
+        async def get_blogs():
+            return self.get_blogs()
 
     def create_blog(self, blog: BlogModel, access_token: str):
         session = self.manager.Session()
@@ -120,6 +124,34 @@ class BlogController(BaseController):
         finally:
             print("delete_blog is executed.")
             session.close()
+    
+    def get_blogs(self):
+        session = self.manager.Session()
+        try:
+            print("1")
+            blogs = session.query(Blog).order_by(Blog.created_at.desc()).all()
+            print("2")
+            items = []
+            for blog in blogs:
+                items.append(
+                    BlogResponse(
+                        id=blog.id,
+                        user_id=blog.user_id,
+                        title=blog.title,
+                        content=blog.content,
+                        created_at=blog.created_at
+                    )
+                )
+            if not blogs:
+                raise HTTPException(404, detail="Blog not found")
+            return CommonResponse(
+                message="Blogs retrieved successfully",
+                data=items
+            )
+        except Exception as e:
+            raise HTTPException(500, detail=f"Server error: {str(e)}")
+        finally:
+            session.close()
 
     def get_blogs_by_user(self, user_id: int):
         session = self.manager.Session()
@@ -146,6 +178,7 @@ class BlogController(BaseController):
             raise HTTPException(500, detail=f"Server error: {str(e)}")
         finally:
             session.close()
+
     def get_blog_handler(self, blog_id: int):
         session = self.manager.Session()
         try:

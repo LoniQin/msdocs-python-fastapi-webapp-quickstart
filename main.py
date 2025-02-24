@@ -8,6 +8,7 @@ from controllers.AuthController import AuthController
 from controllers.ChatController import ChatController
 from controllers.FeedbackController import FeedbackController
 from controllers.WebSocketControlller import WebSocketController
+from controllers.OllamaWebSocketControlller import OllamaWebSocketController
 from controllers.BlogController import BlogController
 from controllers.BlogV2Controller import BlogV2Controller
 from dotenv import load_dotenv
@@ -38,7 +39,7 @@ async def hello(request: Request, name: str = Form(...)):
 manager = create_manager()
 session = manager.Session()
 session.query()
-for Controller in [AuthController, ChatController, FeedbackController, WebSocketController, BlogController, BlogV2Controller]:
+for Controller in [AuthController, ChatController, FeedbackController, WebSocketController, OllamaWebSocketController, BlogController, BlogV2Controller]:
     cls = Controller(app, manager)
     cls.setup()   
 def main():

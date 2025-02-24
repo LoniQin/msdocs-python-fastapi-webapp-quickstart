@@ -90,10 +90,8 @@ class BlogResponse(BaseModel):
     title: str
     content: str
     created_at: datetime
-
+    
 ## BlogV2
-
-
 class BlogV2EditModel(BaseModel):
     id: UUID
     user_id: int
@@ -110,3 +108,7 @@ class BlogV2Response(BaseModel):
     title: str
     content: str
     created_at: datetime
+class WebSocketMessage(BaseModel):
+    from_id: int 
+    to_id: int 
+    message: str
