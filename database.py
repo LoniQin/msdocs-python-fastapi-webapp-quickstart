@@ -1,6 +1,8 @@
 from sqlalchemy import create_engine, Column, Integer, String, Text, Boolean, ForeignKey, TIMESTAMP, func
 from sqlalchemy.ext.declarative import declarative_base
 from dotenv import load_dotenv
+from sqlalchemy.dialects.postgresql import UUID
+from uuid import uuid4
 import os
 from sqlalchemy.orm import sessionmaker
 Base = declarative_base()
@@ -49,6 +51,14 @@ class Feedback(Base):
 class Blog(Base):
     __tablename__ = "blogs"
     id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("chat_users.user_id"))
+    title = Column(String(255))  # Reasonable title length
+    content = Column(Text)       # Supports large text (up to 1M+ chars)
+    created_at = Column(TIMESTAMP, default=func.now())
+
+class BlogV2(Base):
+    __tablename__ = "blogs_v2"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     user_id = Column(Integer, ForeignKey("chat_users.user_id"))
     title = Column(String(255))  # Reasonable title length
     content = Column(Text)       # Supports large text (up to 1M+ chars)

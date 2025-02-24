@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from typing import Any, List
 from datetime import datetime
+from uuid import UUID
 
 class ChatUser(BaseModel):
     user_id: int
@@ -85,6 +86,26 @@ class BlogDeleteModel(BaseModel):
 
 class BlogResponse(BaseModel):
     id: int
+    user_id: int
+    title: str
+    content: str
+    created_at: datetime
+
+## BlogV2
+
+
+class BlogV2EditModel(BaseModel):
+    id: UUID
+    user_id: int
+    title: str
+    content: str
+
+class BlogV2DeleteModel(BaseModel):
+    id: UUID
+    user_id: int
+
+class BlogV2Response(BaseModel):
+    id: UUID
     user_id: int
     title: str
     content: str
