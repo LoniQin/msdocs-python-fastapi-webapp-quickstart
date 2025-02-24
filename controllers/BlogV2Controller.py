@@ -28,6 +28,10 @@ class BlogV2Controller(BaseController):
         async def delete_blog(blog: BlogV2DeleteModel, API_KEY: str = Header(...)):
             return self.delete_blog(blog=blog, access_token=API_KEY)
         
+        @app.post("/all_blogs_v2/", response_model=CommonResponse)
+        async def get_blogs_by_user(user_id: int):
+            return self.get_blogs()
+        
         @app.post("/blogs/v2/user/{user_id}", response_model=CommonResponse)
         async def get_blogs_by_user(user_id: int):
             return self.get_blogs_by_user(user_id=user_id)
@@ -177,6 +181,32 @@ class BlogV2Controller(BaseController):
             raise HTTPException(500, detail=str(e))
         finally:
             print("delete_blog is executed.")
+            session.close()
+
+    def get_blogs(self):
+        session = self.manager.Session()
+        try:
+            blogs = session.query(Blog).order_by(Blog.created_at.desc()).all()
+            items = []
+            for blog in blogs:
+                items.append(
+                    BlogV2Response(
+                        id=blog.id,
+                        user_id=blog.user_id,
+                        title=blog.title,
+                        content=blog.content,
+                        created_at=blog.created_at
+                    )
+                )
+            if not blogs:
+                raise HTTPException(404, detail="Blog not found")
+            return CommonResponse(
+                message="Blogs retrieved successfully",
+                data=items
+            )
+        except Exception as e:
+            raise HTTPException(500, detail=f"Server error: {str(e)}")
+        finally:
             session.close()
 
     def get_blogs_by_user(self, user_id: int):

@@ -128,9 +128,7 @@ class BlogController(BaseController):
     def get_blogs(self):
         session = self.manager.Session()
         try:
-            print("1")
             blogs = session.query(Blog).order_by(Blog.created_at.desc()).all()
-            print("2")
             items = []
             for blog in blogs:
                 items.append(
