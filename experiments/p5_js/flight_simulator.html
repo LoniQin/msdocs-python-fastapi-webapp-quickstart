@@ -146,7 +146,6 @@
                 generateObject();
             }
         }
-
         function drawVisibleObjects() {
             for (let obj of objects) {
                 let d = dist(planeX, planeZ, obj.x, obj.z);
@@ -155,33 +154,70 @@
                     translate(obj.x, obj.y, obj.z);
                     noStroke();
                     rotateY(obj.rotation);
+                    
+                    // Add ambient and directional lighting
+                    ambientLight(50, 50, 50);
+                    directionalLight(255, 255, 200, -1, 1, -1);
+                    
                     // Enhanced planet appearance
                     if (obj.texture === 'rocky') {
-                        fill(obj.color[0], obj.color[1], obj.color[2]);
+                        // Rocky planet with better material properties
+                        ambientMaterial(obj.color[0], obj.color[1], obj.color[2]);
+                        specularMaterial(50);
+                        shininess(10);
                         sphere(obj.size / 2);
-                        // Add craters
+                        
+                        // Enhanced craters with depth
                         for (let i = 0; i < obj.craters; i++) {
                             push();
                             rotateY(random(TWO_PI));
                             rotateX(random(TWO_PI));
                             translate(obj.size / 2, 0, 0);
-                            fill(obj.color[0] / 1.5, obj.color[1] / 1.5, obj.color[2] / 1.5);
-                            circle(0, 0, obj.size / 8);
+                            fill(obj.color[0] / 1.5, obj.color[1] / 1.5, obj.color[2] / 1.5, 200);
+                            ellipsoid(obj.size / 8, obj.size / 16, obj.size / 8);
+                            // Inner shadow
+                            fill(0, 0, 0, 100);
+                            translate(0, obj.size / 32, 0);
+                            circle(0, 0, obj.size / 10);
                             pop();
                         }
                     } else { // Gas planet
-                        fill(obj.color[0], obj.color[1], obj.color[2], 200);
+                        // Gas planet with layered atmosphere
+                        ambientMaterial(obj.color[0], obj.color[1], obj.color[2]);
+                        specularMaterial(20);
+                        shininess(5);
                         sphere(obj.size / 2);
-                        fill(obj.color[0] / 2, obj.color[1] / 2, obj.color[2] / 2, 100);
-                        sphere(obj.size / 2 * 1.1); // Atmosphere layer
+                        
+                        // Multiple atmosphere layers
+                        fill(obj.color[0] / 1.5, obj.color[1] / 1.5, obj.color[2] / 1.5, 80);
+                        sphere(obj.size / 2 * 1.1);
+                        fill(255, 255, 255, 40);
+                        sphere(obj.size / 2 * 1.15);
+                        
+                        // Swirling cloud effect
+                        push();
+                        rotateY(obj.rotation * 2);
+                        fill(obj.color[0] / 2, obj.color[1] / 2, obj.color[2] / 2, 60);
+                        for (let i = 0; i < 3; i++) {
+                            push();
+                            rotateX(random(TWO_PI));
+                            translate(0, 0, obj.size / 2);
+                            ellipsoid(obj.size * 0.8, obj.size / 20, obj.size / 10);
+                            pop();
+                        }
+                        pop();
                     }
 
                     if (obj.rings) {
                         push();
                         rotateX(PI / 2);
+                        // Enhanced rings with transparency gradient
                         fill(obj.color[0] / 2, obj.color[1] / 2, obj.color[2] / 2, 150);
                         torus(obj.size * 0.8, obj.size / 20);
+                        fill(obj.color[0] / 3, obj.color[1] / 3, obj.color[2] / 3, 100);
                         torus(obj.size * 0.9, obj.size / 25);
+                        fill(255, 255, 255, 50);
+                        torus(obj.size * 1.0, obj.size / 30);
                         pop();
                     }
                     obj.rotation += 0.01;
