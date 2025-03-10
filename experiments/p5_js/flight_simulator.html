@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.2/p5.min.js"></script>
+    </head>
+    <body>
+        <script>
+            // Paste the code above here
+            let planeX, planeY, planeZ;
+            let planeAngle = 0;
+            let speed = 0;
+            let objects = [];
+            let terrainSize = 2000;
+
+            function setup() {
+                createCanvas(windowWidth, windowHeight, WEBGL);
+                // Initial plane position
+                planeX = 0;
+                planeY = -100; // Start above ground
+                planeZ = 0;
+                // Generate random objects
+                generateObjects(50); // Generate 50 random objects
+            }
+
+            function draw() {
+                background(135, 206, 235); // Sky blue
+                
+                // Handle controls
+                handleControls();
+                
+                // Set up camera to follow plane
+                let camX = planeX - 200 * cos(planeAngle);
+                let camY = planeY - 50;
+                let camZ = planeZ - 200 * sin(planeAngle);
+                camera(camX, camY, camZ, planeX, planeY, planeZ, 0, 1, 0);
+                
+                // Draw terrain
+                drawTerrain();
+                
+                // Draw plane
+                push();
+                translate(planeX, planeY, planeZ);
+                rotateY(planeAngle);
+                drawPlane();
+                pop();
+                
+                // Draw random objects
+                drawObjects();
+            }
+
+            // Generate random objects (cubes and spheres)
+            function generateObjects(num) {
+                for (let i = 0; i < num; i++) {
+                    let obj = {
+                    x: random(-terrainSize/2, terrainSize/2),
+                    y: random(-200, 200),
+                    z: random(-terrainSize/2, terrainSize/2),
+                    type: random(['cube', 'sphere']),
+                    size: random(20, 50),
+                    color: [random(255), random(255), random(255)]
+                    };
+                    objects.push(obj);
+                }
+            }
+
+            // Draw all random objects
+            function drawObjects() {
+                for (let obj of objects) {
+                    push();
+                    translate(obj.x, obj.y, obj.z);
+                    fill(obj.color[0], obj.color[1], obj.color[2]);
+                    
+                    if (obj.type === 'cube') {
+                    box(obj.size);
+                    } else {
+                    sphere(obj.size/2);
+                    }
+                    pop();
+                }
+            }
+
+            // Draw the terrain
+            function drawTerrain() {
+                push();
+                translate(0, 200, 0);
+                fill(34, 139, 34); // Forest green
+                plane(terrainSize, terrainSize);
+                pop();
+            }
+
+                // Draw a simple plane
+            function drawPlane() {
+                noStroke();
+                fill(150);
+                
+                // Body
+                push();
+                scale(20, 5, 10);
+                box(1);
+                pop();
+                
+                // Wings
+                push();
+                translate(0, 0, 5);
+                scale(40, 1, 10);
+                fill(100);
+                box(1);
+                pop();
+            }
+
+            // Handle keyboard controls
+            function handleControls() {
+                // Forward movement
+                if (keyIsDown(UP_ARROW)) {
+                    speed = lerp(speed, 5, 0.1);
+                } else {
+                    speed = lerp(speed, 0, 0.05);
+                }
+                
+                // Update plane position based on speed and angle
+                planeX += cos(planeAngle) * speed;
+                planeZ += sin(planeAngle) * speed;
+                
+                // Rotation
+                if (keyIsDown(LEFT_ARROW)) {
+                    planeAngle += 0.03;
+                }
+                if (keyIsDown(RIGHT_ARROW)) {
+                    planeAngle -= 0.03;
+                }
+                
+                // Up and down
+                if (keyIsDown(87)) { // W key
+                    planeY -= 2;
+                }
+                if (keyIsDown(83)) { // S key
+                    planeY += 2;
+                }
+                
+                // Keep plane within bounds
+                planeX = constrain(planeX, -terrainSize/2, terrainSize/2);
+                planeZ = constrain(planeZ, -terrainSize/2, terrainSize/2);
+                planeY = constrain(planeY, -300, 190);
+            }
+
+            function windowResized() {
+                resizeCanvas(windowWidth, windowHeight);
+            }
+        </script>
+    </body>
+</html>
