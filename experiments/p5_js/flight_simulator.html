@@ -37,6 +37,7 @@
         let planeAngle = 0;
         let speed = 0;
         let objects = [];
+        let stars = [];
         let viewDistance = 1000; // Distance at which objects are visible
         let minObjects = 50; // Minimum number of objects to maintain
 
@@ -47,11 +48,15 @@
             planeZ = 0;
             speed = 3; // Give the plane an initial speed
             generateInitialObjects();
+            // Generate stars
+            for (let i = 0; i < 1000; i++) {
+                stars.push({ x: random(-5000, 5000), y: random(-5000, 5000), z: random(-5000, 5000) });
+            }
             frameRate(60); // Add for smoother bullet movement
         }
 
         function draw() {
-            background(135, 206, 235); // Sky blue
+            background(0);  //  Black background
             handleControls();
 
             // Enhanced camera with tilt
@@ -61,6 +66,13 @@
             camera(camX, camY, camZ, planeX, planeY, planeZ, 0, 1, 0);
 
             manageObjects();
+
+            // Draw stars
+            push();
+            stroke(255);
+            strokeWeight(2);
+            stars.forEach(star => point(star.x, star.y, star.z));
+            pop();
 
             // Draw plane with slight banking effect
             push();
@@ -75,9 +87,9 @@
             if (keyIsDown(32)) { // Spacebar to shoot
                 if (frameCount % 5 === 0) { // Rate of fire
                     // Calculate bullet starting position at the front of the plane
-                    let bulletX = planeX + cos(planeAngle) * 40; // 40 units in front of plane
+                    let bulletX = planeX + cos(planeAngle) * 20; // 40 units in front of plane
                     let bulletY = planeY;
-                    let bulletZ = planeZ + sin(planeAngle) * 40;
+                    let bulletZ = planeZ + sin(planeAngle) * 20;
                     
                     // Create bullet with plane's angle and add plane's current speed to bullet speed
                     let bullet = new Bullet(bulletX, bulletY, bulletZ, planeAngle);
