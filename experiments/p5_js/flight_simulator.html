@@ -1,151 +1,326 @@
 <!DOCTYPE html>
 <html>
-    <head>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.2/p5.min.js"></script>
-    </head>
-    <body>
-        <script>
-            // Paste the code above here
-            let planeX, planeY, planeZ;
-            let planeAngle = 0;
-            let speed = 0;
-            let objects = [];
-            let terrainSize = 2000;
 
-            function setup() {
-                createCanvas(windowWidth, windowHeight, WEBGL);
-                // Initial plane position
-                planeX = 0;
-                planeY = -100; // Start above ground
-                planeZ = 0;
-                // Generate random objects
-                generateObjects(50); // Generate 50 random objects
+<head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.2/p5.min.js"></script>
+</head>
+
+<body>
+    <script>
+        class Bullet {
+            constructor(x, y, z, angle) {
+                this.x = x;
+                this.y = y;
+                this.z = z;
+                this.angle = angle;
+                this.speed = 15; // Base speed
+                this.life = 60; // Frames until bullet disappears
             }
 
-            function draw() {
-                background(135, 206, 235); // Sky blue
-                
-                // Handle controls
-                handleControls();
-                
-                // Set up camera to follow plane
-                let camX = planeX - 200 * cos(planeAngle);
-                let camY = planeY - 50;
-                let camZ = planeZ - 200 * sin(planeAngle);
-                camera(camX, camY, camZ, planeX, planeY, planeZ, 0, 1, 0);
-                
-                // Draw terrain
-                drawTerrain();
-                
-                // Draw plane
+            update() {
+                this.x += cos(this.angle) * this.speed;
+                this.z += sin(this.angle) * this.speed;
+                this.life--;
+            }
+
+            display() {
                 push();
-                translate(planeX, planeY, planeZ);
-                rotateY(planeAngle);
-                drawPlane();
+                translate(this.x, this.y, this.z);
+                fill(255, 0, 0);
+                sphere(2);
                 pop();
-                
-                // Draw random objects
-                drawObjects();
             }
+        }
 
-            // Generate random objects (cubes and spheres)
-            function generateObjects(num) {
-                for (let i = 0; i < num; i++) {
-                    let obj = {
-                    x: random(-terrainSize/2, terrainSize/2),
-                    y: random(-200, 200),
-                    z: random(-terrainSize/2, terrainSize/2),
-                    type: random(['cube', 'sphere']),
-                    size: random(20, 50),
-                    color: [random(255), random(255), random(255)]
-                    };
-                    objects.push(obj);
+        let bullets = [];
+        let planeX, planeY, planeZ;
+        let planeAngle = 0;
+        let speed = 0;
+        let objects = [];
+        let viewDistance = 1000; // Distance at which objects are visible
+        let minObjects = 50; // Minimum number of objects to maintain
+
+        function setup() {
+            createCanvas(windowWidth, windowHeight, WEBGL);
+            planeX = 0;
+            planeY = -100;
+            planeZ = 0;
+            speed = 3; // Give the plane an initial speed
+            generateInitialObjects();
+            frameRate(60); // Add for smoother bullet movement
+        }
+
+        function draw() {
+            background(135, 206, 235); // Sky blue
+            handleControls();
+
+            // Enhanced camera with tilt
+            let camX = planeX - 200 * cos(planeAngle);
+            let camY = planeY - 50;
+            let camZ = planeZ - 200 * sin(planeAngle);
+            camera(camX, camY, camZ, planeX, planeY, planeZ, 0, 1, 0);
+
+            manageObjects();
+
+            // Draw plane with slight banking effect
+            push();
+            translate(planeX, planeY, planeZ);
+            rotateY(planeAngle);
+            if (keyIsDown(LEFT_ARROW)) rotateZ(PI / 16);
+            if (keyIsDown(RIGHT_ARROW)) rotateZ(-PI / 16);
+            drawPlane();
+            // Replace the bullet creation in the draw function with this code to emit from front of plane
+            // Find the section within draw() where bullets are created (near line 75) and replace with:
+            // Handle bullets
+            if (keyIsDown(32)) { // Spacebar to shoot
+                if (frameCount % 5 === 0) { // Rate of fire
+                    // Calculate bullet starting position at the front of the plane
+                    let bulletX = planeX + cos(planeAngle) * 40; // 40 units in front of plane
+                    let bulletY = planeY;
+                    let bulletZ = planeZ + sin(planeAngle) * 40;
+                    
+                    // Create bullet with plane's angle and add plane's current speed to bullet speed
+                    let bullet = new Bullet(bulletX, bulletY, bulletZ, planeAngle);
+                    bullet.speed += speed; // Add plane's speed to bullet speed
+                    bullets.push(bullet);
                 }
             }
+            // Update and draw bullets
+            bullets = bullets.filter(b => b.life > 0);
+            for (let bullet of bullets) {
+                bullet.update();
+                bullet.display();
+            }
+            pop();
+            drawVisibleObjects();
+        }
 
-            // Draw all random objects
-            function drawObjects() {
-                for (let obj of objects) {
+        function generateInitialObjects() {
+            for (let i = 0; i < minObjects; i++) {
+                generateObject();
+            }
+        }
+
+        function generateObject() {
+            let angle = random(TWO_PI);
+            let dist = random(viewDistance * 0.5, viewDistance);
+            let typeChance = random();
+            let obj;
+
+            obj = {
+                x: planeX + cos(angle) * dist,
+                y: random(-300, 300),
+                z: planeZ + sin(angle) * dist,
+                type: 'planet',
+                size: random(30, 80),
+                color: [random(100, 255), random(100, 255), random(100, 255)],
+                rings: random() > 0.7,
+                rotation: random(TWO_PI),
+                craters: Math.floor(random(3, 8)), // Add craters
+                texture: random() > 0.5 ? 'rocky' : 'gas' // Add texture type
+            };
+            objects.push(obj);
+        }
+
+        function manageObjects() {
+            // Remove far objects
+            objects = objects.filter(obj => {
+                let d = dist(planeX, planeZ, obj.x, obj.z);
+                return d <= viewDistance * 1.2; // Slight buffer
+            });
+
+            // Add new objects if needed
+            while (objects.length < minObjects) {
+                generateObject();
+            }
+        }
+
+        function drawVisibleObjects() {
+            for (let obj of objects) {
+                let d = dist(planeX, planeZ, obj.x, obj.z);
+                if (d <= viewDistance) {
                     push();
                     translate(obj.x, obj.y, obj.z);
-                    fill(obj.color[0], obj.color[1], obj.color[2]);
-                    
-                    if (obj.type === 'cube') {
-                    box(obj.size);
-                    } else {
-                    sphere(obj.size/2);
+                    noStroke();
+                    rotateY(obj.rotation);
+                    // Enhanced planet appearance
+                    if (obj.texture === 'rocky') {
+                        fill(obj.color[0], obj.color[1], obj.color[2]);
+                        sphere(obj.size / 2);
+                        // Add craters
+                        for (let i = 0; i < obj.craters; i++) {
+                            push();
+                            rotateY(random(TWO_PI));
+                            rotateX(random(TWO_PI));
+                            translate(obj.size / 2, 0, 0);
+                            fill(obj.color[0] / 1.5, obj.color[1] / 1.5, obj.color[2] / 1.5);
+                            circle(0, 0, obj.size / 8);
+                            pop();
+                        }
+                    } else { // Gas planet
+                        fill(obj.color[0], obj.color[1], obj.color[2], 200);
+                        sphere(obj.size / 2);
+                        fill(obj.color[0] / 2, obj.color[1] / 2, obj.color[2] / 2, 100);
+                        sphere(obj.size / 2 * 1.1); // Atmosphere layer
                     }
+
+                    if (obj.rings) {
+                        push();
+                        rotateX(PI / 2);
+                        fill(obj.color[0] / 2, obj.color[1] / 2, obj.color[2] / 2, 150);
+                        torus(obj.size * 0.8, obj.size / 20);
+                        torus(obj.size * 0.9, obj.size / 25);
+                        pop();
+                    }
+                    obj.rotation += 0.01;
                     pop();
                 }
             }
+        }
 
-            // Draw the terrain
-            function drawTerrain() {
-                push();
-                translate(0, 200, 0);
-                fill(34, 139, 34); // Forest green
-                plane(terrainSize, terrainSize);
-                pop();
+        // Replace the existing drawPlane function with this one for F-35 style
+        function drawPlane() {
+            noStroke();
+
+            // Sleek F-35 fuselage - more angular, flatter profile
+            fill(200, 200, 210);
+            push();
+            scale(40, 4, 20);
+            ellipsoid(1, 1, 0.5);  // Flatter top profile for F-35
+            pop();
+
+            // F-35 wings - wider, more angular with beveled edges
+            push();
+            fill(180, 180, 190);
+            translate(0, 0, 0);
+
+            // Main wings - more triangular/trapezoidal for F-35
+            beginShape();
+            vertex(-20, 0, 0);     // Wing root - back
+            vertex(10, 0, 0);      // Wing root - front
+            vertex(20, 0, 25);     // Wing tip - front
+            vertex(-30, 0, 30);    // Wing tip - back
+            endShape(CLOSE);
+
+            // Mirror for other side
+            beginShape();
+            vertex(-20, 0, 0);     // Wing root - back
+            vertex(10, 0, 0);      // Wing root - front
+            vertex(20, 0, -25);    // Wing tip - front
+            vertex(-30, 0, -30);   // Wing tip - back
+            endShape(CLOSE);
+            pop();
+
+            // F-35 horizontal stabilizers (more angular)
+            fill(180, 180, 190);
+            push();
+            translate(-35, -1, 0);
+
+            // Left stabilizer
+            beginShape();
+            vertex(0, 0, 0);
+            vertex(10, 0, 0);
+            vertex(5, 0, 15);
+            vertex(-5, 0, 12);
+            endShape(CLOSE);
+
+            // Right stabilizer
+            beginShape();
+            vertex(0, 0, 0);
+            vertex(10, 0, 0);
+            vertex(5, 0, -15);
+            vertex(-5, 0, -12);
+            endShape(CLOSE);
+            pop();
+
+            // Vertical stabilizer - angled for F-35
+            fill(190, 190, 200);
+            push();
+            translate(-30, -8, 0);
+            rotateZ(PI / 10);  // Angled back
+            scale(15, 12, 2);
+            box(1);
+            pop();
+
+            // Enhanced cockpit - single piece canopy for F-35
+            fill(100, 100, 255, 180);
+            push();
+            translate(15, -6, 0);
+            rotateX(PI / 20);
+            scale(15, 2, 8);
+            sphere(1);
+            pop();
+
+            // F-35 unique engine nozzle
+            fill(80, 80, 80);
+            push();
+            translate(-35, 2, 0);
+            rotateY(PI / 2);
+            cylinder(8, 6);
+
+            // Afterburner effect
+            fill(255, 165, 0, 150);
+            translate(4, 0, 0);
+            cylinder(6, 1);
+            fill(255, 255, 0, 100);
+            translate(1, 0, 0);
+            cylinder(4, 0.5);
+            pop();
+
+            // Weapon bays (closed) underneath
+            fill(160, 160, 170);
+            push();
+            translate(0, 6, 0);
+            scale(25, 1, 10);
+            box(1);
+            pop();
+
+            // Air intake - F-35 has large intakes
+            fill(50);
+            push();
+            translate(15, 3, 10);
+            scale(8, 5, 5);
+            ellipsoid(1, 0.5, 0.5);
+            pop();
+
+            // Air intake - other side
+            push();
+            translate(15, 3, -10);
+            scale(8, 5, 5);
+            ellipsoid(1, 0.5, 0.5);
+            pop();
+        }
+
+        function handleControls() {
+            if (keyIsDown(UP_ARROW)) {
+                speed = lerp(speed, 5, 0.1);
+            } else {
+                speed = lerp(speed, 0, 0.05);
             }
 
-                // Draw a simple plane
-            function drawPlane() {
-                noStroke();
-                fill(150);
-                
-                // Body
-                push();
-                scale(20, 5, 10);
-                box(1);
-                pop();
-                
-                // Wings
-                push();
-                translate(0, 0, 5);
-                scale(40, 1, 10);
-                fill(100);
-                box(1);
-                pop();
+            planeX += cos(planeAngle) * speed;
+            planeZ += sin(planeAngle) * speed;
+            // Remove planeY constraint for free vertical movement
+
+            if (keyIsDown(LEFT_ARROW)) {
+                planeAngle += 0.03;
+            }
+            if (keyIsDown(RIGHT_ARROW)) {
+                planeAngle -= 0.03;
             }
 
-            // Handle keyboard controls
-            function handleControls() {
-                // Forward movement
-                if (keyIsDown(UP_ARROW)) {
-                    speed = lerp(speed, 5, 0.1);
-                } else {
-                    speed = lerp(speed, 0, 0.05);
-                }
-                
-                // Update plane position based on speed and angle
-                planeX += cos(planeAngle) * speed;
-                planeZ += sin(planeAngle) * speed;
-                
-                // Rotation
-                if (keyIsDown(LEFT_ARROW)) {
-                    planeAngle += 0.03;
-                }
-                if (keyIsDown(RIGHT_ARROW)) {
-                    planeAngle -= 0.03;
-                }
-                
-                // Up and down
-                if (keyIsDown(87)) { // W key
-                    planeY -= 2;
-                }
-                if (keyIsDown(83)) { // S key
-                    planeY += 2;
-                }
-                
-                // Keep plane within bounds
-                planeX = constrain(planeX, -terrainSize/2, terrainSize/2);
-                planeZ = constrain(planeZ, -terrainSize/2, terrainSize/2);
-                planeY = constrain(planeY, -300, 190);
+            if (keyIsDown(87)) { // W - Pitch up
+                planeY -= 2 * speed / 5;  // Adjusted for smoother control
             }
+            if (keyIsDown(83)) { // S - Pitch down
+                planeY += 2 * speed / 5;  // Adjusted for smoother control
+            }
+        }
 
-            function windowResized() {
-                resizeCanvas(windowWidth, windowHeight);
-            }
-        </script>
-    </body>
+        function windowResized() {
+            resizeCanvas(windowWidth, windowHeight);
+        }
+    </script>
+</body>
+
 </html>
